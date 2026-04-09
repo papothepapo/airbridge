@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Airbridge</string>
+    <string name="icon_content_desc">Airbridge icon</string>
+
+    <string name="dashboard_overline">Live bridge</string>
+    <string name="status_unknown">Waiting for your AirPods</string>
+    <string name="open_case_hint">Open the case or start playback to wake the live feed.</string>
+    <string name="waiting_ear_status">Wear detection will appear as soon as the device reports it.</string>
+
+    <string name="noise_control_title">Noise Control</string>
+    <string name="noise_control_subtitle">Direct device-side listening controls over the live AAP channel.</string>
+    <string name="anc_off">Off</string>
+    <string name="anc_on">Noise Cancellation</string>
+    <string name="anc_transparency">Transparency</string>
+    <string name="anc_adaptive">Adaptive</string>
+    <string name="conversation_awareness">Conversation Awareness</string>
+    <string name="conversation_live_ready">Listening for speech state updates.</string>
+    <string name="conversation_live_speaking">Conversation Awareness is actively lowering playback.</string>
+    <string name="personalized_volume">Personalized Volume</string>
+    <string name="allow_off_option">Include Off in listening mode cycle</string>
+    <string name="adaptive_audio_noise_level">Adaptive noise blend: %1$d%%</string>
+
+    <string name="listening_title">Listening Profile</string>
+    <string name="listening_subtitle">Comfort, gesture timing, mic routing, and case behavior.</string>
+    <string name="microphone_mode">Microphone Mode</string>
+    <string name="mic_auto">Automatic</string>
+    <string name="mic_right">Always Right</string>
+    <string name="mic_left">Always Left</string>
+    <string name="nc_one_airpod">Allow noise cancellation with one AirPod</string>
+    <string name="ear_detection">Automatic ear detection</string>
+    <string name="volume_swipe">Volume swipe controls</string>
+    <string name="volume_swipe_length">Volume swipe length</string>
+    <string name="setting_default">Default</string>
+    <string name="setting_longer">Longer</string>
+    <string name="setting_longest">Longest</string>
+    <string name="setting_slower">Slower</string>
+    <string name="setting_slowest">Slowest</string>
+    <string name="setting_shorter">Shorter</string>
+    <string name="setting_shortest">Shortest</string>
+    <string name="press_speed">Press speed</string>
+    <string name="press_hold_duration">Press-and-hold duration</string>
+    <string name="tone_volume_level">Case tone volume: %1$d%%</string>
+    <string name="in_case_tone">Charging case tones</string>
+    <string name="sleep_detection">Sleep detection</string>
+
+    <string name="eq_title">Adaptive EQ Telemetry</string>
+    <string name="eq_waiting">Waiting for the AirPods to publish EQ band activity.</string>
+    <string name="eq_live">Live bands: %1$s</string>
+
+    <string name="behavior_title">Playback Automation</string>
+    <string name="enable_service">Keep Airbridge running in the background</string>
+    <string name="auto_pause">Pause when both earbuds are out</string>
+    <string name="pause_on_single">Also pause when only one earbud is removed</string>
+    <string name="auto_resume">Resume when an earbud goes back in</string>
+    <string name="require_connected">Prefer connected-state BLE packets only</string>
+
+    <string name="tools_title">Device Tools</string>
+    <string name="device_profile_subtitle">Choose Auto for normal use, or pin a richer feature profile when Android only reports a generic AirPods name.</string>
+    <string name="device_profile_title">Capability profile</string>
+    <string name="device_profile_auto">Auto</string>
+    <string name="device_profile_airpods3">AirPods 3</string>
+    <string name="device_profile_airpods_pro">AirPods Pro</string>
+    <string name="device_profile_airpods_pro23">AirPods Pro 2 / 3</string>
+    <string name="device_profile_airpods4_anc">AirPods 4 ANC</string>
+    <string name="grant_permissions">Grant Permissions</string>
+    <string name="permissions_ok">Permissions OK</string>
+    <string name="open_bt_settings">Open Bluetooth Settings</string>
+    <string name="open_location_settings">Open Location Settings</string>
+
+    <string name="service_channel_name">Airbridge Status</string>
+    <string name="service_channel_description">Keeps Airbridge connected to your AirPods in the background</string>
+    <string name="service_notification_title">Airbridge running</string>
+
+    <string name="controls_waiting_for_connection">Controls are waiting for a live AAP connection.</string>
+    <string name="connection_summary">%1$s • %2$s • %3$s</string>
+    <string name="battery_summary">Battery: %1$s / %2$s / %3$s</string>
+    <string name="fit_summary">Fit: L %1$s • R %2$s • Lid %3$s</string>
+    <string name="lid_open">Open</string>
+    <string name="lid_closed">Closed</string>
+    <string name="updated_at">Updated %1$s</string>
+    <string name="waiting_connection_summary">Scanner %1$s • %2$s • Location %3$s</string>
+    <string name="location_on">On</string>
+    <string name="location_off">Off</string>
+    <string name="last_packet">Last Apple packet: %1$s</string>
+    <string name="reject_reason">Filtered: %1$s</string>
+    <string name="aap_error">AAP: %1$s</string>
+    <string name="scan_counts">Packets %1$d/%2$d/%3$d/%4$d</string>
+    <string name="last_callback">Last callback %1$s</string>
+    <string name="never">never</string>
+
+    <string name="aap_live">AAP live</string>
+    <string name="aap_handshaking">Handshaking</string>
+    <string name="aap_connecting">Connecting</string>
+    <string name="aap_searching">Searching</string>
+    <string name="aap_backoff">Retrying</string>
+    <string name="aap_timeout">Timed out</string>
+    <string name="aap_error_short">Attention</string>
+    <string name="aap_idle">Idle</string>
+
+    <string name="in_ear">In</string>
+    <string name="out_ear">Out</string>
+</resources>
