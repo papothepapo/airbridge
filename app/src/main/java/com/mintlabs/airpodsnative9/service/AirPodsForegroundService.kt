@@ -569,6 +569,22 @@ class AirPodsForegroundService : Service() {
     private fun bluetoothAdapter() =
         (getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
 
+    private fun isScanning(): Boolean = scanCallback != null || legacyScanCallback != null
+
+    private fun shouldKeepBleScanActive(): Boolean {
+        return when (aapStateLabel) {
+            "connecting", "handshaking", "ready" -> false
+            else -> true
+        }
+    }
+
+    private fun refreshBleScanState() {
+        when {
+            shouldKeepBleScanActive() && !isScanning() -> startScan()
+            !shouldKeepBleScanActive() && isScanning() -> stopScan()
+        }
+    }
+
     private fun startAap() {
         if (aapClient != null) return
         aapClient = AapClient(
@@ -581,6 +597,7 @@ class AirPodsForegroundService : Service() {
                         aapStateLabel = state
                         aapDeviceLabel = deviceLabel.orEmpty()
                         aapLastError = error.orEmpty()
+                        refreshBleScanState()
                         if (state == "searching" && aapStatus != null && System.currentTimeMillis() - aapStatus!!.timestampMs > STALE_TIMEOUT_MS) {
                             aapStatus = null
                             aapSnapshot = null
@@ -614,6 +631,7 @@ class AirPodsForegroundService : Service() {
         aapStateLabel = "stopped"
         aapDeviceLabel = ""
         aapLastError = ""
+        refreshBleScanState()
         if (clearStatus) {
             aapStatus = null
             aapSnapshot = null

@@ -2,6 +2,7 @@ package com.mintlabs.airpodsnative9.prefs
 
 import android.content.Context
 import com.mintlabs.airpodsnative9.aap.DeviceProfileOverride
+import com.mintlabs.airpodsnative9.eq.PowerampEqPreset
 
 object AppSettings {
     private const val PREFS_NAME = "airpods_native9"
@@ -12,6 +13,7 @@ object AppSettings {
     private const val KEY_PAUSE_ON_SINGLE = "pause_on_single"
     private const val KEY_LAST_CLASSIC_ADDRESS = "last_classic_address"
     private const val KEY_DEVICE_PROFILE_OVERRIDE = "device_profile_override"
+    private const val KEY_IMPORTED_EQ_PRESET = "imported_eq_preset"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -65,5 +67,18 @@ object AppSettings {
 
     fun setDeviceProfileOverride(context: Context, value: DeviceProfileOverride) {
         prefs(context).edit().putString(KEY_DEVICE_PROFILE_OVERRIDE, value.name).apply()
+    }
+
+    fun getImportedEqPreset(context: Context): PowerampEqPreset? =
+        prefs(context).getString(KEY_IMPORTED_EQ_PRESET, null)?.let(PowerampEqPreset::fromStorageJson)
+
+    fun setImportedEqPreset(context: Context, preset: PowerampEqPreset?) {
+        prefs(context).edit().apply {
+            if (preset == null) {
+                remove(KEY_IMPORTED_EQ_PRESET)
+            } else {
+                putString(KEY_IMPORTED_EQ_PRESET, preset.toStorageJson())
+            }
+        }.apply()
     }
 }

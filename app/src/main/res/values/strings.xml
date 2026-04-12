@@ -44,9 +44,21 @@
     <string name="in_case_tone">Charging case tones</string>
     <string name="sleep_detection">Sleep detection</string>
 
-    <string name="eq_title">Adaptive EQ Telemetry</string>
-    <string name="eq_waiting">Waiting for the AirPods to publish EQ band activity.</string>
-    <string name="eq_live">Live bands: %1$s</string>
+    <string name="eq_title">EQ</string>
+    <string name="eq_waiting">Live telemetry: waiting for the AirPods to publish EQ band activity.</string>
+    <string name="eq_live">Live telemetry: %1$s</string>
+    <string name="eq_preview">Imported preview: %1$s</string>
+    <string name="eq_import_empty">No Poweramp parametric preset imported.</string>
+    <string name="eq_imported_summary">Imported preset: %1$s • Preamp %2$s • %3$d bands</string>
+    <string name="eq_import_file">Import Poweramp File</string>
+    <string name="eq_import_paste">Paste Poweramp Text</string>
+    <string name="eq_import_clear">Clear Imported Preset</string>
+    <string name="eq_import_paste_title">Paste Poweramp Parametric EQ</string>
+    <string name="eq_import_paste_message">Paste a Poweramp parametric text preset or exported JSON preset.</string>
+    <string name="eq_import_paste_hint">Preamp: -6.0 dB&#10;Filter 1: ON PK Fc 32 Hz Gain -1.0 dB Q 0.70</string>
+    <string name="eq_import_success">Imported %1$s</string>
+    <string name="eq_import_cleared">Imported EQ preset cleared</string>
+    <string name="eq_import_failed">Import failed: %1$s</string>
 
     <string name="behavior_title">Playback Automation</string>
     <string name="enable_service">Keep Airbridge running in the background</string>

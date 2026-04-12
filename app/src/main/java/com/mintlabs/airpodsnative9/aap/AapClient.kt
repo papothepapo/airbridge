@@ -297,7 +297,9 @@ class AapClient(
 
         val session = SessionState(device.address, device.name, profileOverride)
         activeSession = session
-        val buffer = ByteArray(2048)
+        // Classic L2CAP sockets on Android deliver packetized reads. Keep the buffer comfortably
+        // above the observed AAP MTU so a single read does not truncate a whole AAP message.
+        val buffer = ByteArray(READ_BUFFER_SIZE)
         var firstPacketSeen = false
         val watchdog = Thread {
             try {
@@ -874,31 +876,34 @@ class AapClient(
     }
 
     private class AapFramer {
-        private val buffer = mutableListOf<Byte>()
-
         fun consume(bytes: ByteArray, offset: Int = 0, length: Int = bytes.size): List<AapMessage> {
-            for (index in offset until offset + length) {
-                buffer.add(bytes[index])
-            }
+            if (length < 6) return emptyList()
 
-            val messages = mutableListOf<AapMessage>()
-            while (buffer.size >= 4) {
-                val payloadLength = (buffer[2].toInt() and 0xFF) or ((buffer[3].toInt() and 0xFF) shl 8)
-                val totalLength = 4 + payloadLength
-                if (buffer.size < totalLength) break
+            val packet = bytes.copyOfRange(offset, offset + length)
+            val headerIndex = findHeader(packet, 0)
+            if (headerIndex < 0) return emptyList()
 
-                val messageBytes = ByteArray(totalLength)
-                for (index in 0 until totalLength) {
-                    messageBytes[index] = buffer[index]
-                }
-                buffer.subList(0, totalLength).clear()
-                AapMessage.parse(messageBytes)?.let { messages += it }
+            val messageBytes = if (headerIndex == 0) {
+                packet
+            } else {
+                packet.copyOfRange(headerIndex, packet.size)
             }
-            return messages
+            return AapMessage.parse(messageBytes)?.let(::listOf).orEmpty()
         }
 
-        fun reset() {
-            buffer.clear()
+        fun reset() = Unit
+
+        private fun findHeader(source: ByteArray, startIndex: Int): Int {
+            val lastStart = source.size - 4
+            for (index in startIndex..lastStart) {
+                val first = source[index].toInt() and 0xFF
+                if (first != 0x00 && first != 0x01 && first != 0x04) continue
+                if (source[index + 1] != 0.toByte()) continue
+                if (source[index + 2] != 0x04.toByte()) continue
+                if (source[index + 3] != 0.toByte()) continue
+                return index
+            }
+            return -1
         }
     }
 
@@ -936,6 +941,7 @@ class AapClient(
         private const val INITIAL_RETRY_BACKOFF_MS = 5_000L
         private const val MAX_RETRY_BACKOFF_MS = 60_000L
         private const val MAX_BACKOFF_STEPS = 4
+        private const val READ_BUFFER_SIZE = 8_192
 
         private val HANDSHAKE_PACKET = byteArrayOf(
             0x00, 0x00, 0x04, 0x00, 0x01, 0x00, 0x02, 0x00,

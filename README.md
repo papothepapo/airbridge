@@ -25,6 +25,7 @@ The current build was validated on an Oilsky M308 running Android 9 with Magisk 
   - Press speed
   - Press-and-hold duration
   - Allow-Off cycle option
+- Poweramp-compatible parametric EQ preset import and local preview
 - Manual capability profile override for devices that only expose a generic Bluetooth name
 
 ## Requirements
@@ -55,6 +56,20 @@ app/build/outputs/apk/debug/app-debug.apk
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb shell monkey -p com.mintlabs.airpodsnative9 -c android.intent.category.LAUNCHER 1
 ```
+
+## Current Device Status
+
+On the validated Oilsky M308 + rooted Android 9 test device, the current debug build now works as the main test branch.
+
+- Working on-device:
+  - ANC and listening mode controls
+  - live in-ear status reporting
+  - battery reporting over AAP
+  - model detection and AAP live session bring-up
+  - Poweramp-compatible parametric EQ preset import and local preview
+  - BLE scanning automatically stops once AAP is live and resumes only when reconnect is needed
+- Notes:
+  - the Poweramp import path is intentionally lightweight; it stores and previews the imported preset inside Airbridge without adding a background DSP engine or extra polling
 
 ## Using The Manual Profile Override
 

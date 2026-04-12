@@ -6,19 +6,25 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.provider.Settings
 import android.text.format.DateFormat
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.ChipGroup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.slider.Slider
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.mintlabs.airpodsnative9.aap.AncMode
@@ -27,8 +33,11 @@ import com.mintlabs.airpodsnative9.aap.MicrophoneMode
 import com.mintlabs.airpodsnative9.aap.PressHoldDuration
 import com.mintlabs.airpodsnative9.aap.PressSpeed
 import com.mintlabs.airpodsnative9.aap.VolumeSwipeLength
+import com.mintlabs.airpodsnative9.eq.PowerampEqPreset
+import com.mintlabs.airpodsnative9.eq.PowerampEqPresetParser
 import com.mintlabs.airpodsnative9.prefs.AppSettings
 import com.mintlabs.airpodsnative9.service.AirPodsForegroundService
+import java.io.IOException
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
@@ -44,6 +53,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvAdaptiveAudioNoiseLabel: TextView
     private lateinit var tvToneVolumeLabel: TextView
     private lateinit var tvEqStatus: TextView
+    private lateinit var tvEqTelemetry: TextView
 
     private lateinit var cardNoiseControl: MaterialCardView
     private lateinit var cardListening: MaterialCardView
@@ -103,16 +113,25 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnGrantPermissions: Button
     private lateinit var btnBtSettings: Button
     private lateinit var btnLocationSettings: Button
+    private lateinit var btnEqImportFile: Button
+    private lateinit var btnEqPaste: Button
+    private lateinit var btnEqClear: Button
 
     private lateinit var eqBars: List<View>
 
     private var suppressListeners = false
+    private var importedEqPreset: PowerampEqPreset? = null
+    private var latestLiveEqBands: FloatArray? = null
 
     private val statusReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action != AirPodsForegroundService.ACTION_STATUS_UPDATE) return
             render(intent)
         }
+    }
+
+    private val eqPresetPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(::importEqPresetFromUri)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -122,6 +141,8 @@ class MainActivity : AppCompatActivity() {
         bindViews()
         bindSettings()
         bindControls()
+        bindEqImportTools()
+        importedEqPreset = AppSettings.getImportedEqPreset(this)
         updatePermissionWarning()
 
         btnGrantPermissions.setOnClickListener { requestNeededPermissions() }
@@ -174,6 +195,7 @@ class MainActivity : AppCompatActivity() {
         tvAdaptiveAudioNoiseLabel = findViewById(R.id.tvAdaptiveAudioNoiseLabel)
         tvToneVolumeLabel = findViewById(R.id.tvToneVolumeLabel)
         tvEqStatus = findViewById(R.id.tvEqStatus)
+        tvEqTelemetry = findViewById(R.id.tvEqTelemetry)
 
         cardNoiseControl = findViewById(R.id.cardNoiseControl)
         cardListening = findViewById(R.id.cardListening)
@@ -233,6 +255,9 @@ class MainActivity : AppCompatActivity() {
         btnGrantPermissions = findViewById(R.id.btnGrantPermissions)
         btnBtSettings = findViewById(R.id.btnBtSettings)
         btnLocationSettings = findViewById(R.id.btnLocationSettings)
+        btnEqImportFile = findViewById(R.id.btnEqImportFile)
+        btnEqPaste = findViewById(R.id.btnEqPaste)
+        btnEqClear = findViewById(R.id.btnEqClear)
 
         eqBars = listOf(
             findViewById(R.id.eqBar1),
@@ -471,6 +496,21 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    private fun bindEqImportTools() {
+        btnEqImportFile.setOnClickListener {
+            eqPresetPicker.launch(arrayOf("application/json", "text/plain", "text/*", "*/*"))
+        }
+        btnEqPaste.setOnClickListener {
+            showEqPasteDialog()
+        }
+        btnEqClear.setOnClickListener {
+            importedEqPreset = null
+            AppSettings.setImportedEqPreset(this, null)
+            renderEq(latestLiveEqBands)
+            Toast.makeText(this, getString(R.string.eq_import_cleared), Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun maybeStartService() {
         if (!AppSettings.isServiceEnabled(this)) return
         if (!hasAllPermissions()) return
@@ -604,7 +644,7 @@ class MainActivity : AppCompatActivity() {
 
         cardNoiseControl.isVisible = supportsAnc || supportsConversation || supportsPersonalizedVolume || supportsAdaptiveNoise || supportsAllowOff
         cardListening.isVisible = supportsMicMode || supportsNcOneAirpod || supportsEarDetection || supportsVolumeSwipe || supportsVolumeSwipeLength || supportsToneVolume || supportsInCaseTone || supportsSleepDetection || supportsPressSpeed || supportsPressHoldDuration
-        cardAdaptiveEq.isVisible = supportsEq
+        cardAdaptiveEq.isVisible = true
 
         chipAncOff.isVisible = AncMode.OFF.name in supportedAncModes
         chipAncOn.isVisible = AncMode.ON.name in supportedAncModes
@@ -745,13 +785,47 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun renderEq(bands: FloatArray?) {
-        if (bands == null || bands.isEmpty()) {
-            eqBars.forEach { it.scaleY = 0.2f }
-            tvEqStatus.text = getString(R.string.eq_waiting)
+        latestLiveEqBands = bands?.copyOf()
+        val liveText = if (bands == null || bands.isEmpty()) {
+            getString(R.string.eq_waiting)
+        } else {
+            getString(
+                R.string.eq_live,
+                bands.take(eqBars.size).joinToString("  ") { String.format(Locale.US, "%.1f", it) }
+            )
+        }
+
+        val imported = importedEqPreset
+        if (imported == null) {
+            tvEqStatus.text = getString(R.string.eq_import_empty)
+            tvEqTelemetry.text = liveText
+            renderEqBars(bands?.take(eqBars.size))
+            btnEqClear.isVisible = false
             return
         }
 
-        val usable = bands.take(eqBars.size)
+        tvEqStatus.text = getString(
+            R.string.eq_imported_summary,
+            imported.name,
+            formatSignedDb(imported.preampDb),
+            imported.enabledBands().size
+        )
+        tvEqTelemetry.text = buildString {
+            append(getString(R.string.eq_preview, imported.previewSummary()))
+            append('\n')
+            append(liveText)
+        }
+        renderEqBars(imported.previewBands(eqBars.size).map { it.gainDb })
+        btnEqClear.isVisible = true
+    }
+
+    private fun renderEqBars(values: List<Float>?) {
+        if (values.isNullOrEmpty()) {
+            eqBars.forEach { it.scaleY = 0.2f }
+            return
+        }
+
+        val usable = values.take(eqBars.size)
         val maxMagnitude = usable.maxOfOrNull { abs(it) }?.coerceAtLeast(0.3f) ?: 1f
         usable.forEachIndexed { index, value ->
             val normalized = (abs(value) / maxMagnitude).coerceIn(0f, 1f)
@@ -763,10 +837,6 @@ class MainActivity : AppCompatActivity() {
                 eqBars[index].scaleY = 0.2f
             }
         }
-        tvEqStatus.text = getString(
-            R.string.eq_live,
-            usable.joinToString("  ") { String.format(Locale.US, "%.1f", it) }
-        )
     }
 
     private fun applyAncSelection(value: String?) {
@@ -840,6 +910,90 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun showEqPasteDialog() {
+        val input = EditText(this).apply {
+            minLines = 8
+            hint = getString(R.string.eq_import_paste_hint)
+            setText("")
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.eq_import_paste_title)
+            .setMessage(R.string.eq_import_paste_message)
+            .setView(input)
+            .setPositiveButton(R.string.eq_import_paste) { _, _ ->
+                importEqPresetAsync(
+                    raw = input.text?.toString().orEmpty(),
+                    fallbackName = "Pasted preset",
+                    sourceLabel = "Pasted text"
+                )
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun importEqPresetFromUri(uri: Uri) {
+        val displayName = queryDisplayName(uri)
+        Thread {
+            val result = runCatching {
+                val raw = contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
+                    ?: throw IOException("Could not read the selected preset file.")
+                PowerampEqPresetParser.parse(
+                    raw = raw,
+                    fallbackName = displayName?.substringBeforeLast('.'),
+                    sourceLabel = displayName ?: uri.lastPathSegment
+                )
+            }
+            runOnUiThread {
+                handleImportedEqResult(result)
+            }
+        }.start()
+    }
+
+    private fun importEqPresetAsync(
+        raw: String,
+        fallbackName: String?,
+        sourceLabel: String?,
+    ) {
+        Thread {
+            val result = runCatching {
+                PowerampEqPresetParser.parse(
+                    raw = raw,
+                    fallbackName = fallbackName,
+                    sourceLabel = sourceLabel
+                )
+            }
+            runOnUiThread {
+                handleImportedEqResult(result)
+            }
+        }.start()
+    }
+
+    private fun handleImportedEqResult(result: Result<PowerampEqPreset>) {
+        result.onSuccess { preset ->
+            importedEqPreset = preset
+            AppSettings.setImportedEqPreset(this, preset)
+            renderEq(latestLiveEqBands)
+            Toast.makeText(this, getString(R.string.eq_import_success, preset.name), Toast.LENGTH_SHORT).show()
+        }.onFailure { error ->
+            Toast.makeText(
+                this,
+                getString(R.string.eq_import_failed, error.message ?: error.javaClass.simpleName),
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private fun queryDisplayName(uri: Uri): String? {
+        contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+            if (!cursor.moveToFirst()) return null
+            val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (index < 0) return null
+            return cursor.getString(index)
+        }
+        return null
+    }
+
     private fun withSuppressed(block: () -> Unit) {
         suppressListeners = true
         try {
@@ -852,6 +1006,7 @@ class MainActivity : AppCompatActivity() {
     private fun yesNo(value: Boolean): String = if (value) getString(R.string.in_ear) else getString(R.string.out_ear)
 
     private fun formatBattery(value: Int): String = if (value >= 0) "$value%" else "--"
+    private fun formatSignedDb(value: Float): String = String.format(Locale.US, "%+.1f dB", value)
 
     companion object {
         private const val PERMISSION_REQUEST_CODE = 74
