@@ -5,8 +5,6 @@ Airbridge is an Android 9+ AirPods companion app for rooted devices. It combines
 The current build was validated on an Oilsky M308 running Android 9 with Magisk root and an AirPods Pro-class headset. The app branding is `Airbridge`; the Android package id intentionally remains `com.mintlabs.airpodsnative9` in this branch so existing Magisk root grants and on-device data survive upgrades during development.
 
 ## Features
-
-- Airbridge launcher name and custom icon
 - BLE status parsing for model hints, battery, lid state, fit state, and connection heuristics
 - Foreground bridge service with notification status
 - Playback automation for pause/resume on in-ear changes
@@ -108,15 +106,6 @@ Airbridge is not tied to the Oilsky M308. To port it to another rooted Android d
    - Confirm status broadcasts still update the activity
 
 If you want a clean package rename on another device, change `namespace` and `applicationId` in [`app/build.gradle.kts`](app/build.gradle.kts) and then grant fresh root permissions for the new package. Keeping the current package id is useful during iterative bring-up because root managers often key approvals per-package.
-
-## Repo Hygiene
-
-This repository is intended to be published without local machine or signing secrets. The tracked tree excludes:
-
-- `local.properties`
-- Gradle caches and build outputs
-- generated APKs and AABs
-- local keystores and certificate bundles
 
 ## Related Notes
 
